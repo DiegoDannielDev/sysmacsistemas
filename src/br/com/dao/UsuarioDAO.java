@@ -5,28 +5,26 @@
  */
 package br.com.dao;
 
+import ConexaoBd.ConexaoDAO;
 import br.com.controller.UsuarioControler;
+import br.com.exceptions.ApiExceptions;
 import br.com.model.Usuario;
 import br.com.view.FormPrincipal;
 import br.com.view.FormUsuarios;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JOptionPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author Diego Danniel
  */
-public class UsuarioDAO {
+public class UsuarioDAO extends ConexaoDAO {
 
-    ConexaoDAO conect = new ConexaoDAO();
-    Connection conexao = null;
-    PreparedStatement pst = null;
-    ResultSet rs = null;
+    private static final Logger LOGGER = LoggerFactory.getLogger(Usuario.class);
     UsuarioControler user;
     FormUsuarios codigoUsuario;
     Usuario cad;
@@ -42,14 +40,14 @@ public class UsuarioDAO {
      */
     public boolean insert(Usuario usuario) {
         int adicionado;
-        conect.conexao();
+        conexao();
         String sql = "INSERT INTO `usuarios` (`NOME`,\n"
                 + "  `LOGIN`,\n"
                 + "  `SENHA`,\n"
                 + "  `EMAIL`) VALUES (?,?,?,?) ";
 
         try {
-            pst = conect.conn.prepareStatement(sql);
+            pst = conn.prepareStatement(sql);
             pst.setString(1, usuario.getNomeUser());
             pst.setString(2, usuario.getLoginUser());
             pst.setString(3, usuario.getSenhaUser());
@@ -63,11 +61,12 @@ public class UsuarioDAO {
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Erro ao cadastrar\n " + e.getMessage());
-            // login.barra.setVisible(false);
-            return false;
+            LOGGER.error("ERRO "+e);
+            JOptionPane.showMessageDialog(principal,e.getMessage());
+           throw new ApiExceptions(e);
+          
         } finally {
-            conect.desconecta();
+            desconecta();
         }
     }
 
@@ -82,41 +81,39 @@ public class UsuarioDAO {
     }
 
     public boolean validaUsuarioDao(Usuario usuario) throws SQLException {
-        conect.conexao();
+        conexao();
 
         String sql = "SELECT * FROM usuarios  WHERE login=? AND senha=?";
         try {
 
-            pst = conect.conn.prepareStatement(sql);
+            pst = conn.prepareStatement(sql);
             pst.setString(1, usuario.getLoginUser());
             pst.setString(2, usuario.getSenhaUser());
 
             rs = pst.executeQuery();
-            
 
         } catch (SQLException ex) {
 
             JOptionPane.showMessageDialog(null, "Erro" + ex.getMessage());
             return false;
 
-        }finally{
-            conect.desconecta();
+        } finally {
+            desconecta();
             pst.close();
             rs.close();
         }
         return true;
-        
 
     }
 
     public List<Usuario> findAll() throws SQLException {
         List<Usuario> usuario = new ArrayList<>();
-        conect.conexao();
+        conexao();
         user = new UsuarioControler();
         codigoUsuario = new FormUsuarios();
         try {
             String sql = "SELECT * FROM USUARIOS";
-            pst = conect.conn.prepareStatement(sql);
+            pst = conn.prepareStatement(sql);
             rs = pst.executeQuery();
             while (rs.next()) {
                 usuario.add(new Usuario(
@@ -136,8 +133,8 @@ public class UsuarioDAO {
         cad = new Usuario();
 
         try {
-            conect.executasql("select * from usuarios");
-            conect.rs.next();
+            executasql("select * from usuarios");
+            rs.next();
             cad.setCodigoUser(rs.getInt("CODIGO"));
             cad.setNomeUser(rs.getString("NOME"));
             cad.setLoginUser(rs.getString("LOGIN"));
@@ -145,7 +142,7 @@ public class UsuarioDAO {
 
             pst.executeQuery();
 
-            //model.setSenhaUser(conect.rs.getString());
+            //model.setSenhaUser(rs.getString());
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(null, ex.getMessage());
         }
@@ -157,7 +154,7 @@ public class UsuarioDAO {
 
         try {
 
-            conect.rs.last();
+            rs.last();
 
             users.add(new Usuario(
                     rs.getInt("CODIGO"),
@@ -165,7 +162,7 @@ public class UsuarioDAO {
                     rs.getString("LOGIN"),
                     rs.getString("EMAIL")));
 
-            //model.setSenhaUser(conect.rs.getString());
+            //model.setSenhaUser(rs.getString());
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(null, ex.getMessage());
         }
